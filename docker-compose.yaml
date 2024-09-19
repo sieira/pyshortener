@@ -1,0 +1,122 @@
+name: pyshortener
+
+networks:
+  pyshortener-net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+  pyshortener:
+    image: nginx:1
+    networks:
+      - pyshortener-net
+    ports:
+      - "${NGINX_HTTP_PORT}:80"
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf/default.conf:/etc/nginx/conf.d/default.conf
+
+  mariadb:
+    image: mariadb:11
+    container_name: pyshortener-mariadb
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: pyshortener
+      MYSQL_USER: pyshortener
+      MYSQL_PASSWORD: pyshortener
+    ports:
+      - 3306:3306
+    restart: on-failure
+    networks:
+      - pyshortener-net
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  mariadb-test:
+    image: mariadb:10
+    container_name: pyshortener-mariadb-test
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: test_pyshortener
+      MYSQL_USER: pyshortener
+      MYSQL_PASSWORD: pyshortener
+    restart: on-failure
+    networks:
+      - pyshortener-net
+
+  pyshortener-api-base:
+    build:
+      context: ./pyshortener/
+      dockerfile: build/Dockerfile.base
+    command: /bin/false
+    container_name: pyshortener-base
+    image: pyshortener-api-base
+
+  pyshortener-api-shortener:
+    build:
+      context: ./pyshortener/
+      dockerfile: build/Dockerfile.base
+    command: bin/runserver
+    container_name: pyshortener-api-shortener
+    depends_on:
+      - pyshortener-api-base
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_SETTINGS_MODULE: 'shortener.settings'
+    image: pyshortener-api
+    networks:
+      - pyshortener-net
+    restart: always
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./pyshortener/:/usr/src/app/
+
+  pyshortener-api-resolver:
+    build:
+      context: ./pyshortener/
+      dockerfile: build/Dockerfile.base
+    command: bin/runserver
+    container_name: pyshortener-api-resolver
+    depends_on:
+      - pyshortener-api-base
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_SETTINGS_MODULE: 'resolver.settings'
+    image: pyshortener-api
+    networks:
+      - pyshortener-net
+    restart: always
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./pyshortener/:/usr/src/app/
+
+  pyshortener-api-test:
+    build:
+      context: ./pyshortener/
+      dockerfile: build/Dockerfile.dev
+    command: /bin/false
+    container_name: pyshortener-api-test
+    depends_on:
+      - pyshortener-api-base
+    environment:
+      DJANGO_DEBUG: 1
+      DJANGO_SECRET_KEY: django-secret-key
+      MYSQL_DB_HOST: mariadb-test
+    image: pyshortener-api
+    networks:
+      - pyshortener-net
+    stdin_open: true
+    tty: true
+    user: ${UID}:${GID}
+    volumes:
+      - ./pyshortener/:/usr/src/app/
+      - ./setup.cfg:/usr/src/app/setup.cfg
+
+volumes:
+  mariadb_data:

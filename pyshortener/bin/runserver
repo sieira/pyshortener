@@ -1,0 +1,10 @@
+#! /bin/sh
+
+case $IS_PROD in
+    1)
+        uwsgi --ini uwsgi.ini
+        ;;
+    *)
+        python manage.py runserver 0.0.0.0:8080
+        ;;
+esac

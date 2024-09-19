@@ -1,0 +1,15 @@
+meta {
+  name: shorten
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/shorten
+  body: json
+  auth: none
+}
+
+body:json {
+  {"url": "http://www.google.com"}
+}
