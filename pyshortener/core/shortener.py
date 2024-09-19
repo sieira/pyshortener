@@ -16,9 +16,9 @@ class Shortener:
     @staticmethod
     def __get_from_long(long_url: str) -> Url | None:
         with connection.cursor() as cursor:
-            cursor.execute(f'SELECT long_url, short_url FROM url WHERE long_url="{long_url}"')
+            cursor.execute(f'SELECT long_url, short_url, click_count FROM url WHERE long_url="{long_url}"')
             record = cursor.fetchone()
-        return None if record is None else Url(record[0], record[1])
+        return None if record is None else Url(record[0], record[1], record[2])
 
     @staticmethod
     def __create(long_url: str) -> Url:
@@ -28,7 +28,7 @@ class Shortener:
             cursor.execute(
                 f'INSERT INTO url (long_url, short_url, expiration_date) VALUES ("{long_url}", "{short_url}", {expiration_timestamp})'
             )
-        return Url(long_url, short_url)
+        return Url(long_url, short_url, 0)
 
     @staticmethod
     def __shorten_url() -> str:
@@ -42,11 +42,11 @@ class Shortener:
     @staticmethod
     def get_from_short(short_url: str) -> Url | None:
         with connection.cursor() as cursor:
-            cursor.execute(f'SELECT long_url, short_url FROM url WHERE short_url="{short_url}"')
+            cursor.execute(f'SELECT long_url, short_url, click_count FROM url WHERE short_url="{short_url}"')
             record = cursor.fetchone()
         if record:
             Shortener.__increment_count(short_url)
-            return Url(record[0], record[1])
+            return Url(record[0], record[1], record[2])
 
     @staticmethod
     def get_or_create(long_url: str) -> Url:
