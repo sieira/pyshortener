@@ -13,5 +13,5 @@ DO
 BEGIN
 DELETE FROM
   url
-WHERE expiration_date < NOW();
+WHERE expiration_date > UNIX_TIMESTAMP(NOW());
 END
