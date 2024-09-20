@@ -12,4 +12,4 @@ def resolve(request: Request, short_url: str) -> Response:
     if url is None:
         return Response(status=status.HTTP_404_NOT_FOUND)
     # 307 specifies that the method should not change, allowing to POST from the browser through the redirection
-    return Response(status=status.HTTP_307_TEMPORARY_REDIRECT, data=url.long_url)
+    return Response(status=status.HTTP_307_TEMPORARY_REDIRECT, headers={'Location': url.long_url})
