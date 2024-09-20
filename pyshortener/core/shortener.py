@@ -16,7 +16,10 @@ class Shortener:
     @staticmethod
     def __get_from_long(long_url: str) -> Url | None:
         with connection.cursor() as cursor:
-            cursor.execute(f'SELECT long_url, short_url, click_count FROM url WHERE long_url="{long_url}"')
+            cursor.execute(
+                'SELECT long_url, short_url, click_count FROM url WHERE long_url=%s',
+                (long_url,)
+            )
             record = cursor.fetchone()
         return None if record is None else Url(record[0], record[1], record[2])
 
@@ -26,7 +29,8 @@ class Shortener:
         expiration_timestamp = int(time.time()) + Shortener.EXPIRATION_SECONDS
         with connection.cursor() as cursor:
             cursor.execute(
-                f'INSERT INTO url (long_url, short_url, expiration_date) VALUES ("{long_url}", "{short_url}", {expiration_timestamp})'
+                'INSERT INTO url (long_url, short_url, expiration_date) VALUES (%s, %s, %s)',
+                (long_url, short_url, expiration_timestamp)
             )
         return Url(long_url, short_url, 0)
 
@@ -37,12 +41,18 @@ class Shortener:
     @staticmethod
     def __increment_count(short_url: str) -> None:
         with connection.cursor() as cursor:
-            cursor.execute(f'UPDATE url SET click_count = click_count + 1 WHERE short_url="{short_url}"')
+            cursor.execute(
+                'UPDATE url SET click_count = click_count + 1 WHERE short_url=%s',
+                (short_url,)
+            )
 
     @staticmethod
     def get_from_short(short_url: str) -> Url | None:
         with connection.cursor() as cursor:
-            cursor.execute(f'SELECT long_url, short_url, click_count FROM url WHERE short_url="{short_url}"')
+            cursor.execute(
+                'SELECT long_url, short_url, click_count FROM url WHERE short_url=%s',
+                (short_url,)
+            )
             record = cursor.fetchone()
         if record:
             Shortener.__increment_count(short_url)
